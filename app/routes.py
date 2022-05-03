@@ -90,24 +90,59 @@ def give_planets():
 #             }
 #     return planet, 200
 
+def validate_planet(planet_id):
+    try:
+        planet_id = int(planet_id)
+    except:
+        abort(make_response({"message":f"planet {planet_id} invalid"}, 400))
+
+    planet = Planet.query.get(planet_id)
+
+    if planet is None:
+        abort(make_response({'msg': f'Planet {planet_id} not found'}, 404))
+
+    return planet
 
 
-# @planets_bp.route("/<planet_id>", methods=["GET"])
-# def get_one_planet(planet_id):
-#     try:
-#         planet_id = int(planet_id)
-#     except ValueError:
-#         return {'msg': f"ID:{planet_id} invalid. Input an integer."}, 400
-#     chosen_planet = None
-#     for planet in planets:
-#         if planet_id == planet.id:
-#             chosen_planet = {
-#                 "id": planet.id,
-#                 "name": planet.name,
-#                 "description": planet.description,
-#                 "radius_mi": planet.radius_mi
-#             }
-#     if chosen_planet is None:
-#         return {'msg': f'Planet {planet_id} not found'}, 404
-#     return chosen_planet, 200
+@planets_bp.route("/<planet_id>", methods=["GET"])
+def get_one_planet(planet_id):
+    
+    chosen_planet = validate_planet(planet_id)
+
+    return {
+                "id": chosen_planet.id,
+                "name": chosen_planet.name,
+                "description": chosen_planet.description,
+                "radius_mi": chosen_planet.radius_mi
+            }
+
+@planets_bp.route("/<planet_id>", methods=["PUT"])
+def update_one_planet(planet_id):
+    
+    chosen_planet = validate_planet(planet_id)
+    request_body = request.get_json()
+
+    if "name" not in request_body or \
+        "description" not in request_body or \
+        "radius_mi" not in request_body:
+        return jsonify ({'msg': f"Request must include name, description, and radius_mi."}), 400
+
+    chosen_planet.name = request_body["name"]
+    chosen_planet.description = request_body["description"]
+    chosen_planet.radius_mi = request_body["radius_mi"]
+
+    db.session.commit()
+
+    return f"Planet {planet_id} updated successfully."
+
+@planets_bp.route("/<planet_id>", methods=["DELETE"])
+def delete_one_planet(planet_id):
+    chosen_planet = validate_planet(planet_id)
+    db.session.delete(chosen_planet)
+    db.session.commit()
+
+    return f"Planet {planet_id} deleted successfully."
+
+
+
 
